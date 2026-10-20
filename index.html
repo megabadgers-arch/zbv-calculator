@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ЗБВ — калькулятор собівартості</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header><span class="badge">ЗБВ / ВИРОБНИЦТВО</span><h1>Собівартість виробу</h1><p>Вкажіть витрати ресурсів та актуальні ціни — розрахунок оновиться автоматично.</p></header>
+    <form id="calculator" novalidate>
+      <section class="card" aria-labelledby="resources-title">
+        <h2 id="resources-title">Ресурси та ціни</h2>
+        <p class="hint">Усі ціни вказуйте без ПДВ. Допускаються лише невід’ємні числа.</p>
+        <div class="resource"><h3>Бетон</h3><label>Об’єм бетону, м³<input name="concrete" type="number" min="0" step="any" value="0" required></label><label>Ціна бетону, грн/м³<input name="concretePrice" type="number" min="0" step="any" value="4500" required></label><p class="subtotal">Витрати на бетон <output id="concreteCost">0,00 грн</output></p></div>
+        <div class="resource"><h3>Арматура</h3><label>Маса арматури, кг<input name="steel" type="number" min="0" step="any" value="0" required></label><label>Ціна арматури, грн/кг<input name="steelPrice" type="number" min="0" step="any" value="45" required></label><p class="subtotal">Витрати на арматуру <output id="steelCost">0,00 грн</output></p></div>
+        <div class="resource"><h3>Електроенергія</h3><label>Витрати електроенергії, кВт·год<input name="energy" type="number" min="0" step="any" value="0" required></label><label>Тариф, грн/кВт·год<input name="energyPrice" type="number" min="0" step="any" value="7.20" required></label><p class="subtotal">Витрати на електроенергію <output id="energyCost">0,00 грн</output></p></div>
+        <div class="resource"><h3>Праця</h3><label>Трудовитрати, людино-години<input name="labor" type="number" min="0" step="any" value="0" required></label><label>Ціна праці, грн/люд.-год<input name="laborPrice" type="number" min="0" step="any" value="425" required></label><p class="subtotal">Витрати на працю <output id="laborCost">0,00 грн</output></p></div>
+      </section>
+      <aside class="card summary" aria-labelledby="summary-title">
+        <h2 id="summary-title">Підсумок</h2>
+        <label>ПДВ, %<input name="vat" type="number" min="0" step="any" value="20" required></label>
+        <div aria-live="polite" aria-atomic="true"><p class="total-row">Собівартість без ПДВ<output id="net">0,00 грн</output></p><p class="total-row">Сума ПДВ<output id="tax">0,00 грн</output></p><div class="grand-total"><span>Разом з ПДВ</span><output id="gross">0,00 грн</output></div><p id="error" class="error" role="alert" hidden></p></div>
+        <button type="reset">Скинути розрахунок</button>
+        <p class="hint">Розрахунок включає лише зазначені ресурси. Прибуток, доставка та інші накладні витрати не враховані.</p>
+      </aside>
+    </form>
+    <footer>Точні ресурси — зрозуміла собівартість.</footer>
+  </main>
+  <script>
+/* Формули відокремлені від інтерфейсу для перевірки через Node.js. */
+function calculate(values) {
+  const names = ['concrete', 'concretePrice', 'steel', 'steelPrice', 'energy', 'energyPrice', 'labor', 'laborPrice', 'vat'];
+  if (names.some(name => typeof values[name] !== 'number' || !Number.isFinite(values[name]) || values[name] < 0)) {
+    throw new RangeError('Введіть невід’ємні числові значення в усі поля.');
+  }
+  const costs = Object.fromEntries(['concrete', 'steel', 'energy', 'labor'].map(name => [name, values[name] * values[`${name}Price`]]));
+  const net = Object.values(costs).reduce((sum, cost) => sum + cost, 0);
+  const tax = net * values.vat / 100;
+  const gross = net + tax;
+  if (![...Object.values(costs), net, tax, gross].every(Number.isFinite)) {
+    throw new RangeError('Значення завеликі для розрахунку. Зменште введені числа.');
+  }
+  return { costs, net, tax, gross };
+}
+
+if (typeof module !== 'undefined') module.exports = { calculate };
+
+if (typeof document !== 'undefined') {
+  const form = document.getElementById('calculator');
+  const inputs = Array.from(form.querySelectorAll('input'));
+  const money = new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const outputs = Array.from(form.querySelectorAll('output'));
+  const error = document.getElementById('error');
+  function update() {
+    const values = {};
+    for (const input of inputs) {
+      const valid = input.validity.valid && Number.isFinite(input.valueAsNumber);
+      input.setAttribute('aria-invalid', String(!valid));
+      values[input.name] = valid ? input.valueAsNumber : NaN;
+    }
+    try {
+      const result = calculate(values);
+      for (const [name, cost] of Object.entries(result.costs)) document.getElementById(`${name}Cost`).textContent = money.format(cost);
+      for (const name of ['net', 'tax', 'gross']) document.getElementById(name).textContent = money.format(result[name]);
+      error.hidden = true;
+      error.textContent = '';
+    } catch (failure) {
+      outputs.forEach(output => { output.textContent = '—'; });
+      error.textContent = failure.message;
+      error.hidden = false;
+    }
+  }
+  form.addEventListener('input', update);
+  form.addEventListener('change', update);
+  form.addEventListener('submit', event => event.preventDefault());
+  form.addEventListener('reset', () => setTimeout(update, 0));
+  update();
+}
+  </script>
+</body>
+</html>
