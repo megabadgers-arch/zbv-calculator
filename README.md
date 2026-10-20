@@ -58,3 +58,9 @@ NODE_PATH=/tmp/zbv-test-tools/node_modules node --test calculator.test.js v2.tes
 ```
 
 Тести самі запускають тимчасовий HTTP-сервер. Перевіряються контрольний приклад v1, усі поля та події, формули v2, затвердження цін, CSV, незмінність знімків, JSON, перезавантаження, конфлікт запису та ширини 375/1280 px. Ці перевірки Chromium не є перевіркою інтерфейсу вебперегляду Codex.
+
+## Тимчасова публікація за окремою адресою
+
+`python3 scripts/prepare-preview.py` створює `/workspace/zbv-v2-preview-pages.zip` для **окремого** тестового репозиторію GitHub Pages. Інший шлях: `python3 scripts/prepare-preview.py --output /tmp/preview.zip`.
+
+Архів містить `index.html`, `styles.css`, `.nojekyll` та покрокову інструкцію. Скрипт не виконує мережевих операцій, не змінює формули та використовує в копії окремий ключ браузерного сховища `zbv-calculator-v2-preview`. Не перемикайте джерело Pages у чинному репозиторії: створіть новий `zbv-calculator-v2-preview` і публікуйте файли лише там. Після розгортання відкрийте адресу, показану GitHub у Settings → Pages → Visit site, у браузері Windows. Порт 8000 і localhost для цього не потрібні.
