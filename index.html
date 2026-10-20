@@ -1,83 +1,1012 @@
 <!doctype html>
 <html lang="uk">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ЗБВ — калькулятор собівартості</title>
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-  <main>
-    <header><span class="badge">ЗБВ / ВИРОБНИЦТВО</span><h1>Собівартість виробу</h1><p>Вкажіть витрати ресурсів та актуальні ціни — розрахунок оновиться автоматично.</p></header>
-    <form id="calculator" novalidate>
-      <section class="card" aria-labelledby="resources-title">
-        <h2 id="resources-title">Ресурси та ціни</h2>
-        <p class="hint">Усі ціни вказуйте без ПДВ. Допускаються лише невід’ємні числа.</p>
-        <div class="resource"><h3>Бетон</h3><label>Об’єм бетону, м³<input name="concrete" type="number" min="0" step="any" value="0" required></label><label>Ціна бетону, грн/м³<input name="concretePrice" type="number" min="0" step="any" value="4500" required></label><p class="subtotal">Витрати на бетон <output id="concreteCost">0,00 грн</output></p></div>
-        <div class="resource"><h3>Арматура</h3><label>Маса арматури, кг<input name="steel" type="number" min="0" step="any" value="0" required></label><label>Ціна арматури, грн/кг<input name="steelPrice" type="number" min="0" step="any" value="45" required></label><p class="subtotal">Витрати на арматуру <output id="steelCost">0,00 грн</output></p></div>
-        <div class="resource"><h3>Електроенергія</h3><label>Витрати електроенергії, кВт·год<input name="energy" type="number" min="0" step="any" value="0" required></label><label>Тариф, грн/кВт·год<input name="energyPrice" type="number" min="0" step="any" value="7.20" required></label><p class="subtotal">Витрати на електроенергію <output id="energyCost">0,00 грн</output></p></div>
-        <div class="resource"><h3>Праця</h3><label>Трудовитрати, людино-години<input name="labor" type="number" min="0" step="any" value="0" required></label><label>Ціна праці, грн/люд.-год<input name="laborPrice" type="number" min="0" step="any" value="425" required></label><p class="subtotal">Витрати на працю <output id="laborCost">0,00 грн</output></p></div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ЗБВ 2.0 — ресурси та собівартість</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <span class="badge">ЗБВ / ВЕРСІЯ 2.0</span>
+        <h1>Ресурси. Ціни. Собівартість.</h1>
+        <p>
+          Єдиний довідник цін для ваших калькуляцій. Початкові ціни — навчальні,
+          не ринкові пропозиції.
+        </p>
+      </header>
+      <nav aria-label="Основне меню">
+        <button data-tab="calc" aria-current="page">
+          Калькулятор собівартості</button
+        ><button data-tab="resources">Матеріали та ресурси</button
+        ><button data-tab="offers">Комерційні пропозиції</button
+        ><button data-tab="history">Історія цін</button
+        ><button data-tab="settings">Налаштування</button>
+      </nav>
+      <p id="notice" role="status" aria-live="polite"></p>
+      <section id="calc" data-panel>
+        <form id="calculator" novalidate>
+          <section class="card">
+            <h2>Ресурси виробу</h2>
+            <p class="hint">
+              Ціни без ПДВ. Ручне редагування ціни змінює довідник після
+              завершення введення. ТВО — тепловологісна обробка, години; одиниці
+              нових матеріалів обирайте в довіднику.
+            </p>
+            <div id="calcRows"></div>
+          </section>
+          <aside class="card summary">
+            <h2>Підсумок</h2>
+            <label
+              >ПДВ, %<input
+                id="vat"
+                name="vat"
+                type="number"
+                min="0"
+                step="any"
+                required
+                value="20"
+            /></label>
+            <div aria-live="polite">
+              <p class="total-row">Без ПДВ <output id="net"></output></p>
+              <p class="total-row">ПДВ <output id="tax"></output></p>
+              <div class="grand-total">
+                Разом з ПДВ<output id="gross"></output>
+              </div>
+              <p id="error" role="alert" hidden></p>
+            </div>
+            <label
+              >Назва калькуляції<input
+                id="calculationTitle"
+                placeholder="Наприклад, плита ПК-1" /></label
+            ><button id="saveCalculation" type="button">
+              Зберегти знімок калькуляції</button
+            ><button type="reset">Скинути розрахунок</button>
+            <p class="hint">
+              Скидання повертає початкові навчальні ціни, ПДВ 20% та нульові
+              обсяги. Збережені калькуляції та пропозиції залишаться. Доставка і
+              прибуток не враховані.
+            </p>
+          </aside>
+        </form>
+        <section class="card">
+          <h2>Збережені калькуляції</h2>
+          <div id="snapshots"></div>
+        </section>
       </section>
-      <aside class="card summary" aria-labelledby="summary-title">
-        <h2 id="summary-title">Підсумок</h2>
-        <label>ПДВ, %<input name="vat" type="number" min="0" step="any" value="20" required></label>
-        <div aria-live="polite" aria-atomic="true"><p class="total-row">Собівартість без ПДВ<output id="net">0,00 грн</output></p><p class="total-row">Сума ПДВ<output id="tax">0,00 грн</output></p><div class="grand-total"><span>Разом з ПДВ</span><output id="gross">0,00 грн</output></div><p id="error" class="error" role="alert" hidden></p></div>
-        <button type="reset">Скинути розрахунок</button>
-        <p class="hint">Розрахунок включає лише зазначені ресурси. Прибуток, доставка та інші накладні витрати не враховані.</p>
-      </aside>
-    </form>
-    <footer>Точні ресурси — зрозуміла собівартість.</footer>
-  </main>
-  <script>
-/* Формули відокремлені від інтерфейсу для перевірки через Node.js. */
-function calculate(values) {
-  const names = ['concrete', 'concretePrice', 'steel', 'steelPrice', 'energy', 'energyPrice', 'labor', 'laborPrice', 'vat'];
-  if (names.some(name => typeof values[name] !== 'number' || !Number.isFinite(values[name]) || values[name] < 0)) {
-    throw new RangeError('Введіть невід’ємні числові значення в усі поля.');
-  }
-  const costs = Object.fromEntries(['concrete', 'steel', 'energy', 'labor'].map(name => [name, values[name] * values[`${name}Price`]]));
-  const net = Object.values(costs).reduce((sum, cost) => sum + cost, 0);
-  const tax = net * values.vat / 100;
-  const gross = net + tax;
-  if (![...Object.values(costs), net, tax, gross].every(Number.isFinite)) {
-    throw new RangeError('Значення завеликі для розрахунку. Зменште введені числа.');
-  }
-  return { costs, net, tax, gross };
-}
+      <section id="resources" data-panel hidden class="card">
+        <h2>Матеріали та ресурси</h2>
+        <p class="hint">
+          «Затверджена користувачем» означає ваш вибір, а не незалежне
+          підтвердження актуальності ринкової ціни. ПДВ для всіх ресурсів
+          визначається в калькуляторі.
+        </p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Найменування</th>
+                <th>Категорія</th>
+                <th>Одиниця</th>
+                <th>Без ПДВ</th>
+                <th>З ПДВ</th>
+                <th>Постачальник</th>
+                <th>Дата оновлення</th>
+                <th>Джерело</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="resourceTable"></tbody>
+          </table>
+        </div>
+        <h3>Новий ресурс</h3>
+        <form id="addResource" class="fields">
+          <label
+            >Найменування<input name="name" required maxlength="150" /></label
+          ><label
+            >Категорія<input name="category" required maxlength="100" /></label
+          ><label
+            >Одиниця<select name="unit">
+              <option>м³</option>
+              <option>кг</option>
+              <option>кВт·год</option>
+              <option>люд.-год</option>
+              <option>год</option>
+              <option>л</option>
+              <option>шт</option>
+            </select></label
+          ><button>Додати ресурс</button>
+        </form>
+      </section>
+      <section id="offers" data-panel hidden class="card">
+        <h2>Комерційні пропозиції</h2>
+        <p class="hint">
+          Ціни в грн без ПДВ. Кілька пропозицій на ресурс; затверджується лише
+          одна. Зовнішні джерела не підключено.
+        </p>
+        <form id="addOffer" class="fields">
+          <label
+            >Ресурс<select id="offerResource" name="resourceId"></select></label
+          ><label
+            >Ціна без ПДВ<input
+              name="price"
+              type="number"
+              min="0"
+              step="any"
+              required /></label
+          ><label
+            >Постачальник<input
+              name="supplier"
+              required
+              maxlength="200" /></label
+          ><label>Дата ціни<input name="date" type="date" required /></label
+          ><label
+            >Джерело ціни<input
+              name="source"
+              required
+              maxlength="300"
+              placeholder="Номер пропозиції або посилання" /></label
+          ><button>Додати пропозицію</button>
+        </form>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Ресурс</th>
+                <th>Ціна</th>
+                <th>Постачальник</th>
+                <th>Дата</th>
+                <th>Джерело</th>
+                <th>Вибір ціни</th>
+              </tr>
+            </thead>
+            <tbody id="offersTable"></tbody>
+          </table>
+        </div>
+        <h3>Імпорт CSV</h3>
+        <p class="hint">
+          UTF-8, роздільник ; або кома. Десяткова кома підтримується (для CSV з
+          роздільником-комою беріть число в лапки). Матеріали мають існувати в
+          довіднику, одиниці — точно збігатися. XLSX: спочатку збережіть як CSV
+          у табличному редакторі.
+        </p>
+        <button id="csvTemplate" type="button">Завантажити шаблон CSV</button
+        ><label
+          >Файл цін<input id="csvFile" type="file" accept=".csv,text/csv"
+        /></label>
+        <div id="importPreview" aria-live="polite"></div>
+        <button id="importPrices" type="button" disabled>
+          Імпортувати перевірені пропозиції
+        </button>
+      </section>
+      <section id="history" data-panel hidden class="card">
+        <h2>Історія змін цін</h2>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Дата зміни</th>
+                <th>Ресурс</th>
+                <th>Попередня ціна</th>
+                <th>Нова ціна</th>
+                <th>Джерело</th>
+              </tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+          </table>
+        </div>
+      </section>
+      <section id="settings" data-panel hidden class="card">
+        <h2>Налаштування та резервні копії</h2>
+        <p>
+          Дані зберігаються лише в цьому браузері (localStorage). Очищення даних
+          сайту видаляє їх. Регулярно завантажуйте JSON-копію. Резервна копія
+          містить ресурси, пропозиції, історію, ПДВ та збережені калькуляції;
+          незбережені обсяги не включено.
+        </p>
+        <button id="exportJSON" type="button">
+          Експортувати резервну копію JSON</button
+        ><label
+          >Відновити JSON (замінює поточні дані)<input
+            id="restoreJSON"
+            type="file"
+            accept=".json,application/json"
+        /></label>
+      </section>
+      <footer>ЗБВ 2.0 · Локальні дані · Без зовнішніх джерел цін</footer>
+    </main>
+    <script>
+      /* Формули відокремлені від інтерфейсу для перевірки через Node.js. */
+      function calculate(values) {
+        const names = [
+          "concrete",
+          "concretePrice",
+          "steel",
+          "steelPrice",
+          "energy",
+          "energyPrice",
+          "labor",
+          "laborPrice",
+          "vat",
+        ];
+        if (
+          names.some(
+            (name) =>
+              typeof values[name] !== "number" ||
+              !Number.isFinite(values[name]) ||
+              values[name] < 0,
+          )
+        ) {
+          throw new RangeError(
+            "Введіть невід’ємні числові значення в усі поля.",
+          );
+        }
+        const costs = Object.fromEntries(
+          ["concrete", "steel", "energy", "labor"].map((name) => [
+            name,
+            values[name] * values[`${name}Price`],
+          ]),
+        );
+        const net = Object.values(costs).reduce((sum, cost) => sum + cost, 0);
+        const tax = (net * values.vat) / 100;
+        const gross = net + tax;
+        if (
+          ![...Object.values(costs), net, tax, gross].every(Number.isFinite)
+        ) {
+          throw new RangeError(
+            "Значення завеликі для розрахунку. Зменште введені числа.",
+          );
+        }
+        return { costs, net, tax, gross };
+      }
 
-if (typeof module !== 'undefined') module.exports = { calculate };
+      if (typeof module !== "undefined") module.exports = { calculate };
 
-if (typeof document !== 'undefined') {
-  const form = document.getElementById('calculator');
-  const inputs = Array.from(form.querySelectorAll('input'));
-  const money = new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const outputs = Array.from(form.querySelectorAll('output'));
-  const error = document.getElementById('error');
-  function update() {
-    const values = {};
-    for (const input of inputs) {
-      const valid = input.validity.valid && Number.isFinite(input.valueAsNumber);
-      input.setAttribute('aria-invalid', String(!valid));
-      values[input.name] = valid ? input.valueAsNumber : NaN;
-    }
-    try {
-      const result = calculate(values);
-      for (const [name, cost] of Object.entries(result.costs)) document.getElementById(`${name}Cost`).textContent = money.format(cost);
-      for (const name of ['net', 'tax', 'gross']) document.getElementById(name).textContent = money.format(result[name]);
-      error.hidden = true;
-      error.textContent = '';
-    } catch (failure) {
-      outputs.forEach(output => { output.textContent = '—'; });
-      error.textContent = failure.message;
-      error.hidden = false;
-    }
-  }
-  form.addEventListener('input', update);
-  form.addEventListener('change', update);
-  form.addEventListener('submit', event => event.preventDefault());
-  form.addEventListener('reset', () => setTimeout(update, 0));
-  update();
-}
-  </script>
-</body>
+      const units = ["м³", "кг", "кВт·год", "люд.-год", "год", "л", "шт"];
+      function number(value) {
+        if (typeof value === "string") value = value.trim().replace(",", ".");
+        if (
+          value === "" ||
+          value === null ||
+          (typeof value !== "number" && typeof value !== "string") ||
+          !Number.isFinite(Number(value)) ||
+          Number(value) < 0
+        )
+          throw Error("Потрібне невід’ємне число.");
+        return Number(value);
+      }
+      function initialState() {
+        return {
+          version: 2,
+          vat: 20,
+          resources: [
+            ["concrete", "Бетон", "Матеріали", "м³", 4500],
+            ["steel", "Арматура", "Матеріали", "кг", 45],
+            ["embedded", "Закладні деталі", "Матеріали", "кг", 0],
+            ["energy", "Електроенергія", "Енергія", "кВт·год", 7.2],
+            ["gas", "Газ", "Енергія", "м³", 0],
+            ["labor", "Трудові ресурси", "Праця", "люд.-год", 425],
+            ["curing", "ТВО", "Послуги", "год", 0],
+            ["aux", "Допоміжні матеріали", "Матеріали", "кг", 0],
+          ].map(([id, name, category, unit, price]) => ({
+            id,
+            name,
+            category,
+            unit,
+            price,
+            supplier: "",
+            date: "",
+            source: "Навчальні початкові дані",
+            status: "Навчальна",
+            approvedId: null,
+          })),
+          offers: [],
+          history: [],
+          snapshots: [],
+        };
+      }
+      function totals(lines, vat) {
+        const costs = lines.map(
+          (line) => number(line.quantity) * number(line.price),
+        );
+        const net = costs.reduce((a, b) => a + b, 0),
+          tax = (net * number(vat)) / 100,
+          gross = net + tax;
+        if (![...costs, net, tax, gross].every(Number.isFinite))
+          throw Error("Значення завеликі.");
+        return { costs, net, tax, gross };
+      }
+      function approve(state, id, now = new Date().toISOString()) {
+        const offer = state.offers.find((o) => o.id === id);
+        if (!offer) throw Error("Пропозицію не знайдено.");
+        const resource = state.resources.find((r) => r.id === offer.resourceId);
+        if (!resource || resource.unit !== offer.unit)
+          throw Error("Одиниці виміру не збігаються.");
+        number(offer.price);
+        state.history.push({
+          resourceId: resource.id,
+          name: resource.name,
+          oldPrice: resource.price,
+          newPrice: offer.price,
+          offerId: id,
+          date: now,
+          source: offer.source,
+        });
+        Object.assign(resource, {
+          price: offer.price,
+          supplier: offer.supplier,
+          date: offer.date,
+          source: offer.source,
+          status: "Затверджена користувачем",
+          approvedId: id,
+        });
+      }
+      function recordManualPrice(state, resource, price, source) {
+        if (resource.price !== price)
+          state.history.push({
+            resourceId: resource.id,
+            name: resource.name,
+            oldPrice: resource.price,
+            newPrice: price,
+            offerId: null,
+            date: new Date().toISOString(),
+            source,
+          });
+      }
+      function snapshot(
+        state,
+        quantities,
+        title,
+        now = new Date().toISOString(),
+      ) {
+        const lines = state.resources.map((r) => ({
+          resourceId: r.id,
+          name: r.name,
+          unit: r.unit,
+          quantity: number(quantities[r.id] ?? 0),
+          price: r.price,
+          source: r.source,
+          offerId: r.approvedId,
+        }));
+        return {
+          id: crypto.randomUUID(),
+          title,
+          date: now,
+          vat: state.vat,
+          lines,
+          ...totals(lines, state.vat),
+        };
+      }
+      function parseCSV(text, resources) {
+        text = text.replace(/^\uFEFF/, "");
+        const delimiter = text.split(/\r?\n/)[0].includes(";") ? ";" : ",";
+        const rows = [];
+        let row = [],
+          cell = "",
+          quoted = false;
+        for (let i = 0; i < text.length; i++) {
+          const c = text[i];
+          if (c === '"') {
+            if (quoted && text[i + 1] === '"') {
+              cell += '"';
+              i++;
+            } else if (quoted || cell === "") quoted = !quoted;
+            else throw Error("Некоректні лапки CSV.");
+          } else if (c === delimiter && !quoted) {
+            row.push(cell);
+            cell = "";
+          } else if ((c === "\n" || c === "\r") && !quoted) {
+            if (c === "\r" && text[i + 1] === "\n") i++;
+            row.push(cell);
+            if (row.some((v) => v.trim())) rows.push(row);
+            row = [];
+            cell = "";
+          } else cell += c;
+        }
+        if (quoted) throw Error("Незакриті лапки CSV.");
+        row.push(cell);
+        if (row.some((v) => v.trim())) rows.push(row);
+        const headers = rows.shift()?.map((s) => s.trim());
+        const required = [
+          "Матеріал",
+          "Одиниця",
+          "Ціна без ПДВ",
+          "Постачальник",
+          "Дата",
+          "Джерело",
+        ];
+        if (
+          !headers ||
+          required.some((h) => !headers.includes(h)) ||
+          new Set(headers).size !== headers.length
+        )
+          throw Error("Потрібні унікальні заголовки: " + required.join("; "));
+        return rows.map((cells, index) => {
+          const data = Object.fromEntries(
+            headers.map((h, i) => [h, (cells[i] ?? "").trim()]),
+          );
+          try {
+            if (cells.length !== headers.length)
+              throw Error("Невірна кількість колонок.");
+            const r = resources.find(
+              (r) =>
+                r.name.toLocaleLowerCase("uk") ===
+                data["Матеріал"].toLocaleLowerCase("uk"),
+            );
+            if (!r) throw Error("Матеріал відсутній у довіднику.");
+            if (data["Одиниця"] !== r.unit)
+              throw Error(
+                "Одиниця має бути " +
+                  r.unit +
+                  "; автоматичної конвертації немає.",
+              );
+            const price = number(data["Ціна без ПДВ"]);
+            if (!validDate(data["Дата"]))
+              throw Error("Дата має бути дійсною у форматі РРРР-ММ-ДД.");
+            if (!data["Постачальник"] || !data["Джерело"])
+              throw Error("Вкажіть постачальника та джерело.");
+            return {
+              row: index + 2,
+              name: r.name,
+              resourceId: r.id,
+              unit: r.unit,
+              price,
+              supplier: data["Постачальник"],
+              date: data["Дата"],
+              source: data["Джерело"],
+              error: "",
+            };
+          } catch (error) {
+            return {
+              row: index + 2,
+              name: data["Матеріал"],
+              error: error.message,
+            };
+          }
+        });
+      }
+      function validDate(s) {
+        return (
+          /^\d{4}-\d{2}-\d{2}$/.test(s) &&
+          !Number.isNaN(Date.parse(s)) &&
+          new Date(s).toISOString().slice(0, 10) === s
+        );
+      }
+      function validateBackup(s) {
+        if (
+          !s ||
+          s.version !== 2 ||
+          !Array.isArray(s.resources) ||
+          !s.resources.length ||
+          !Array.isArray(s.offers) ||
+          !Array.isArray(s.history) ||
+          !Array.isArray(s.snapshots)
+        )
+          throw Error("Невірний формат резервної копії v2.");
+        number(s.vat);
+        const ids = new Set();
+        const text = (v) => {
+          if (typeof v !== "string") throw Error("Невірне текстове поле.");
+        };
+        for (const r of s.resources) {
+          [
+            "id",
+            "name",
+            "category",
+            "unit",
+            "supplier",
+            "date",
+            "source",
+            "status",
+          ].forEach((k) => text(r[k]));
+          if (
+            !/^[a-zA-Z0-9-]+$/.test(r.id) ||
+            !r.name ||
+            ids.has(r.id) ||
+            !units.includes(r.unit)
+          )
+            throw Error("Невірний ресурс або повторний ID.");
+          ids.add(r.id);
+          number(r.price);
+          if (r.date && !validDate(r.date)) throw Error("Невірна дата.");
+        }
+        const offerIds = new Set();
+        for (const o of s.offers) {
+          ["id", "resourceId", "unit", "supplier", "date", "source"].forEach(
+            (k) => text(o[k]),
+          );
+          if (
+            !o.id ||
+            offerIds.has(o.id) ||
+            !s.resources.some(
+              (r) => r.id === o.resourceId && r.unit === o.unit,
+            ) ||
+            !validDate(o.date)
+          )
+            throw Error("Невірна пропозиція.");
+          offerIds.add(o.id);
+          number(o.price);
+        }
+        for (const r of s.resources)
+          if (
+            r.approvedId !== null &&
+            !s.offers.some(
+              (o) =>
+                o.id === r.approvedId &&
+                o.resourceId === r.id &&
+                o.price === r.price,
+            )
+          )
+            throw Error("Невірна затверджена ціна.");
+        for (const h of s.history) {
+          text(h.name);
+          text(h.date);
+          text(h.source);
+          number(h.oldPrice);
+          number(h.newPrice);
+          if (
+            !ids.has(h.resourceId) ||
+            (h.offerId !== null && !offerIds.has(h.offerId))
+          )
+            throw Error("Невірна історія.");
+        }
+        for (const snap of s.snapshots) {
+          text(snap.id);
+          text(snap.title);
+          text(snap.date);
+          if (!Array.isArray(snap.lines)) throw Error("Невірна калькуляція.");
+          for (const l of snap.lines) {
+            text(l.name);
+            text(l.unit);
+            number(l.price);
+            number(l.quantity);
+          }
+          const t = totals(snap.lines, snap.vat);
+          for (const key of ["net", "tax", "gross"])
+            if (t[key] !== snap[key])
+              throw Error("Пошкоджені підсумки калькуляції.");
+          if (JSON.stringify(t.costs) !== JSON.stringify(snap.costs))
+            throw Error("Пошкоджені статті калькуляції.");
+        }
+        return s;
+      }
+      if (typeof module !== "undefined")
+        Object.assign(module.exports, {
+          initialState,
+          totals,
+          approve,
+          snapshot,
+          parseCSV,
+          validateBackup,
+        });
+      if (typeof document !== "undefined") {
+        const $ = (id) => document.getElementById(id),
+          key = "zbv-calculator-v2";
+        const money = (n) =>
+          new Intl.NumberFormat("uk-UA", {
+            style: "currency",
+            currency: "UAH",
+          }).format(n);
+        const esc = (s) =>
+          String(s ?? "").replace(
+            /[&<>"']/g,
+            (c) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              })[c],
+          );
+        let state = initialState(),
+          quantities = {},
+          preview = [],
+          storageOK = true,
+          storedVersion = null;
+        function notice(message) {
+          $("notice").textContent = message;
+        }
+        try {
+          const saved = localStorage.getItem(key);
+          storedVersion = saved;
+          if (saved) state = validateBackup(JSON.parse(saved));
+        } catch (e) {
+          storageOK = false;
+          notice(
+            "Дані не завантажено: " +
+              e.message +
+              " Автозапис заблоковано, щоб не перезаписати резервні дані. Експортуйте поточні дані або відновіть справну JSON-копію.",
+          );
+        }
+        function commit(fn) {
+          const next = structuredClone(state);
+          fn(next);
+          validateBackup(next);
+          if (!storageOK)
+            throw Error(
+              "Сховище заблоковане. Відновіть справну JSON-копію в налаштуваннях.",
+            );
+          if (localStorage.getItem(key) !== storedVersion)
+            throw Error(
+              "Дані змінено в іншій вкладці. Перезавантажте сторінку.",
+            );
+          const serialized = JSON.stringify(next);
+          localStorage.setItem(key, serialized);
+          storedVersion = serialized;
+          state = next;
+          render();
+        }
+        function guard(fn) {
+          try {
+            fn();
+          } catch (e) {
+            notice(e.message);
+          }
+        }
+        const input = (name, value, type = "text", extra = "") =>
+          `<input name="${name}" type="${type}" value="${esc(value)}" ${extra}>`;
+        function render() {
+          $("vat").value = state.vat;
+          const resourceSignature = state.resources.map((r) => r.id).join(",");
+          if ($("calcRows").dataset.signature !== resourceSignature) {
+            $("calcRows").dataset.signature = resourceSignature;
+            $("calcRows").innerHTML = state.resources
+              .map(
+                (r) =>
+                  `<div class="resource"><h3>${esc(r.name)} <small>${esc(r.unit)}</small></h3><label>Кількість, ${esc(r.unit)}${input(r.id, quantities[r.id] ?? 0, "number", 'min="0" step="any" required data-quantity')}</label><label>Ціна без ПДВ, грн/${esc(r.unit)}${input(r.id + "Price", r.price, "number", 'min="0" step="any" required data-price="' + esc(r.id) + '"')}</label><p class="hint">${esc(r.status)} · ${esc(r.supplier || "Постачальника не вказано")}</p><p class="subtotal">Витрати <output id="${esc(r.id)}Cost"></output></p></div>`,
+              )
+              .join("");
+          }
+          state.resources.forEach((r) => {
+            document.querySelector(`[name="${CSS.escape(r.id)}"]`).value =
+              quantities[r.id] ?? 0;
+            document.querySelector(`[data-price="${CSS.escape(r.id)}"]`).value =
+              r.price;
+            const hint = document
+              .querySelector(`[data-price="${CSS.escape(r.id)}"]`)
+              .closest(".resource")
+              .querySelector(".hint");
+            hint.textContent =
+              r.status + " · " + (r.supplier || "Постачальника не вказано");
+          });
+          $("resourceTable").innerHTML = state.resources
+            .map(
+              (r) =>
+                `<tr><td>${esc(r.name)}</td><td>${esc(r.category)}</td><td>${esc(r.unit)}</td><td>${money(r.price)}</td><td>${money(r.price * (1 + state.vat / 100))}</td><td>${esc(r.supplier || "—")}</td><td>${esc(r.date || "—")}</td><td>${esc(r.source)}</td><td>${esc(r.status)}</td></tr>`,
+            )
+            .join("");
+          $("offerResource").innerHTML = state.resources
+            .map(
+              (r) =>
+                `<option value="${esc(r.id)}">${esc(r.name)} (${esc(r.unit)})</option>`,
+            )
+            .join("");
+          $("offersTable").innerHTML =
+            state.offers
+              .map((o) => {
+                const r = state.resources.find((r) => r.id === o.resourceId);
+                return `<tr><td>${esc(r.name)}</td><td>${money(o.price)} / ${esc(o.unit)}</td><td>${esc(o.supplier)}</td><td>${esc(o.date)}</td><td>${esc(o.source)}</td><td>${r.approvedId === o.id ? "Затверджена" : `<button type="button" data-approve="${esc(o.id)}">Затвердити</button>`}</td></tr>`;
+              })
+              .join("") ||
+            '<tr><td colspan="6">Пропозицій ще немає. Початкові ціни є навчальними.</td></tr>';
+          $("historyTable").innerHTML =
+            state.history
+              .slice()
+              .reverse()
+              .map(
+                (h) =>
+                  `<tr><td>${esc(h.date)}</td><td>${esc(h.name)}</td><td>${money(h.oldPrice)}</td><td>${money(h.newPrice)}</td><td>${esc(h.source)}</td></tr>`,
+              )
+              .join("") ||
+            '<tr><td colspan="5">Історія змін порожня.</td></tr>';
+          $("snapshots").innerHTML =
+            state.snapshots
+              .slice()
+              .reverse()
+              .map(
+                (s) =>
+                  `<details><summary>${esc(s.title)} · ${esc(s.date)} · ${money(s.gross)}</summary><ul>${s.lines.map((l) => `<li>${esc(l.name)}: ${l.quantity} ${esc(l.unit)} × ${money(l.price)} = ${money(l.quantity * l.price)}</li>`).join("")}</ul><p>Без ПДВ: ${money(s.net)}; ПДВ ${s.vat}%: ${money(s.tax)}; разом: ${money(s.gross)}</p></details>`,
+              )
+              .join("") ||
+            '<p class="hint">Збережених калькуляцій ще немає.</p>';
+          update();
+        }
+        function current() {
+          return state.resources.map((r) => ({
+            quantity: quantities[r.id] ?? 0,
+            price: number(
+              document.querySelector(`[data-price="${CSS.escape(r.id)}"]`)
+                .value,
+            ),
+          }));
+        }
+        function update() {
+          try {
+            const result = totals(current(), $("vat").value);
+            state.resources.forEach(
+              (r, i) => ($(r.id + "Cost").textContent = money(result.costs[i])),
+            );
+            ["net", "tax", "gross"].forEach(
+              (k) => ($(k).textContent = money(result[k])),
+            );
+            $("error").hidden = true;
+            return result;
+          } catch (e) {
+            document
+              .querySelectorAll("#calculator output")
+              .forEach((o) => (o.textContent = "—"));
+            $("error").textContent = e.message;
+            $("error").hidden = false;
+            return null;
+          }
+        }
+        $("calculator").addEventListener("input", (e) => {
+          if (e.target.hasAttribute("data-quantity"))
+            quantities[e.target.name] = e.target.value;
+          update();
+        });
+        $("calculator").addEventListener("change", (e) =>
+          guard(() => {
+            if (e.target.hasAttribute("data-quantity"))
+              quantities[e.target.name] = e.target.value;
+            if (e.target.hasAttribute("data-price")) {
+              const r = state.resources.find(
+                (r) => r.id === e.target.dataset.price,
+              );
+              const price = number(e.target.value);
+              commit((s) => {
+                const target = s.resources.find((v) => v.id === r.id);
+                recordManualPrice(s, target, price, "Ручне редагування");
+                Object.assign(target, {
+                  price,
+                  approvedId: null,
+                  status: "Ручна ціна",
+                  source: "Введено користувачем",
+                  supplier: "",
+                  date: new Date().toISOString().slice(0, 10),
+                });
+              });
+            } else if (e.target.name === "vat")
+              commit((s) => (s.vat = number(e.target.value)));
+            else update();
+          }),
+        );
+        $("calculator").addEventListener("submit", (e) => e.preventDefault());
+        $("calculator").addEventListener("reset", (e) => {
+          e.preventDefault();
+          guard(() =>
+            commit((s) => {
+              quantities = {};
+              s.vat = 20;
+              const defaults = initialState();
+              for (const r of s.resources) {
+                const d = defaults.resources.find((d) => d.id === r.id);
+                if (d) {
+                  recordManualPrice(
+                    s,
+                    r,
+                    d.price,
+                    "Скидання до навчальної ціни",
+                  );
+                  Object.assign(r, d);
+                }
+              }
+            }),
+          );
+        });
+        $("saveCalculation").onclick = () =>
+          guard(() => {
+            if (!update()) throw Error("Виправте поля калькулятора.");
+            commit((s) => {
+              s.vat = number($("vat").value);
+              s.resources.forEach((r) => {
+                const value = number(
+                  document.querySelector(`[data-price="${CSS.escape(r.id)}"]`)
+                    .value,
+                );
+                if (value !== r.price) {
+                  recordManualPrice(s, r, value, "Ручне редагування");
+                  Object.assign(r, {
+                    price: value,
+                    approvedId: null,
+                    status: "Ручна ціна",
+                    source: "Введено користувачем",
+                    supplier: "",
+                    date: new Date().toISOString().slice(0, 10),
+                  });
+                }
+              });
+              s.snapshots.push(
+                snapshot(
+                  s,
+                  quantities,
+                  $("calculationTitle").value.trim() || "Калькуляція",
+                ),
+              );
+            });
+            notice("Збережено незмінний знімок калькуляції.");
+          });
+        document.querySelectorAll("[data-tab]").forEach(
+          (button) =>
+            (button.onclick = () => {
+              document
+                .querySelectorAll("[data-panel]")
+                .forEach(
+                  (panel) => (panel.hidden = panel.id !== button.dataset.tab),
+                );
+              document
+                .querySelectorAll("[data-tab]")
+                .forEach((b) =>
+                  b.setAttribute(
+                    "aria-current",
+                    b === button ? "page" : "false",
+                  ),
+                );
+            }),
+        );
+        $("addResource").onsubmit = (e) => {
+          e.preventDefault();
+          guard(() => {
+            const f = new FormData(e.target);
+            const name = f.get("name").trim();
+            if (!name) throw Error("Вкажіть назву.");
+            if (
+              state.resources.some(
+                (r) =>
+                  r.name.toLocaleLowerCase("uk") ===
+                  name.toLocaleLowerCase("uk"),
+              )
+            )
+              throw Error("Така назва вже існує.");
+            commit((s) =>
+              s.resources.push({
+                id: crypto.randomUUID(),
+                name,
+                category: f.get("category").trim(),
+                unit: f.get("unit"),
+                price: 0,
+                supplier: "",
+                date: "",
+                source: "Ціну не встановлено",
+                status: "Не встановлена",
+                approvedId: null,
+              }),
+            );
+            e.target.reset();
+          });
+        };
+        $("addOffer").onsubmit = (e) => {
+          e.preventDefault();
+          guard(() => {
+            const f = new FormData(e.target),
+              r = state.resources.find((r) => r.id === f.get("resourceId"));
+            if (!validDate(f.get("date"))) throw Error("Вкажіть дійсну дату.");
+            for (const k of ["supplier", "source"])
+              if (!f.get(k).trim())
+                throw Error("Вкажіть постачальника та джерело.");
+            commit((s) =>
+              s.offers.push({
+                id: crypto.randomUUID(),
+                resourceId: r.id,
+                unit: r.unit,
+                price: number(f.get("price")),
+                supplier: f.get("supplier").trim(),
+                date: f.get("date"),
+                source: f.get("source").trim(),
+              }),
+            );
+            notice("Пропозицію додано. Для застосування затвердьте її.");
+          });
+        };
+        $("offersTable").onclick = (e) => {
+          const b = e.target.closest("[data-approve]");
+          if (b)
+            guard(() => {
+              commit((s) => approve(s, b.dataset.approve));
+              notice(
+                "Ціну затверджено. Поточний розрахунок оновлено; історичні знімки збережені.",
+              );
+            });
+        };
+        $("csvFile").onchange = async (e) => {
+          preview = [];
+          $("importPrices").disabled = true;
+          $("importPreview").textContent = "";
+          try {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!file.name.toLowerCase().endsWith(".csv"))
+              throw Error("Підтримується CSV UTF-8. XLSX експортуйте в CSV.");
+            if (file.size > 2_000_000)
+              throw Error("Максимальний розмір CSV — 2 МБ.");
+            preview = parseCSV(await file.text(), state.resources);
+            $("importPreview").innerHTML = preview
+              .map(
+                (r) =>
+                  `<p>${r.row}. ${esc(r.name)} — ${r.error ? esc(r.error) : money(r.price) + " / " + esc(r.unit) + " · " + esc(r.supplier) + " · " + esc(r.date) + " · " + esc(r.source)}</p>`,
+              )
+              .join("");
+            $("importPrices").disabled =
+              !preview.length || preview.some((r) => r.error);
+            notice(
+              preview.some((r) => r.error)
+                ? "Імпорт заблоковано: виправте всі помилки."
+                : "Перевірте попередній перегляд. Імпорт створить пропозиції без автоматичного затвердження.",
+            );
+          } catch (error) {
+            notice(error.message);
+          }
+        };
+        $("importPrices").onclick = () =>
+          guard(() => {
+            if (!preview.length || preview.some((r) => r.error))
+              throw Error("Спочатку перевірте CSV.");
+            commit((s) =>
+              preview.forEach(({ row, name, error, ...o }) =>
+                s.offers.push({ ...o, id: crypto.randomUUID() }),
+              ),
+            );
+            preview = [];
+            $("importPrices").disabled = true;
+            $("importPreview").textContent = "Імпорт завершено.";
+          });
+        function download(name, content, type) {
+          const url = URL.createObjectURL(new Blob([content], { type }));
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = name;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+        }
+        $("exportJSON").onclick = () =>
+          download(
+            "zbv-backup.json",
+            JSON.stringify(state, null, 2),
+            "application/json",
+          );
+        $("csvTemplate").onclick = () =>
+          download(
+            "prices-template.csv",
+            "\uFEFFМатеріал;Одиниця;Ціна без ПДВ;Постачальник;Дата;Джерело\n",
+            "text/csv;charset=utf-8",
+          );
+        $("restoreJSON").onchange = async (e) => {
+          try {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 5_000_000)
+              throw Error("Максимальний розмір JSON — 5 МБ.");
+            const restored = validateBackup(JSON.parse(await file.text()));
+            if (
+              !confirm(
+                "Замінити всі локальні дані резервною копією? Поточні дані попередньо експортуйте.",
+              )
+            )
+              return;
+            const serialized = JSON.stringify(restored);
+            localStorage.setItem(key, serialized);
+            storedVersion = serialized;
+            state = restored;
+            storageOK = true;
+            quantities = {};
+            render();
+            notice("Резервну копію відновлено.");
+          } catch (error) {
+            notice("Відновлення скасовано: " + error.message);
+          } finally {
+            e.target.value = "";
+          }
+        };
+        window.addEventListener("storage", (e) => {
+          if (e.key === key)
+            notice(
+              "Дані змінено в іншій вкладці. Перезавантажте сторінку перед редагуванням, щоб уникнути перезапису.",
+            );
+        });
+        render();
+      }
+    </script>
+  </body>
 </html>
